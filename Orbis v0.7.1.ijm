@@ -1,5 +1,5 @@
-/// --- ORBIS v0.7 --- ///
-orbisVersion = 0.7;
+/// --- ORBIS v0.7.1 --- ///
+orbisVersion = 0.7.1;
 
 // Let the user decide the input directory
 inputDir = getDirectory("Choose source directory");
@@ -15,7 +15,31 @@ date[4] = minute;
 date[5] = second;
 
 // Get the files inside the folder chosen as input directory
-list = getFileList(inputDir);
+fileList = getFileList(inputDir);
+imageList = newArray(); 
+
+//Filter the imageList to only include files with .tif or .jpg extension
+imgExtensions = newArray(".tif", ".TIF", ".jpg", ".JPG", ".png", ".PNG", ".jpeg", ".JPEG", ".fits", ".FITS", ".bmp", ".BMP");
+
+for (i = 0; i < fileList.length; i++) 
+{
+	for (j = 0; j < imgExtensions.length; j++) 
+	{
+		if (endsWith(fileList[i], imgExtensions[j]))
+		{
+			imageList = Array.concat(imageList, fileList[i]);
+		}
+	}
+}
+
+// If the imageList is empty, that means either that: 
+// 1 - There are no images in the selected input directory
+// 2 - There are images, but they are of unsupported file types
+// If either is true, an error dialog is created
+if (imageList.length == 0) 
+{
+	exit("Error - no images found in selected folder, at least of supported file types. Supported extensions: .tif, .jpg, .jpeg, .png, .fits, .bmp");
+}
 
 ///// PROCESSING FUNCTIONS /////
 function PreProcess()
@@ -33,7 +57,7 @@ function PreProcess()
 	// Process image to highlight colony boundaries
 	// Clear everything outside of a central area which contains the circle to measure
 	makeOval(getWidth() / 2 - getHeight() / 2, 0, getHeight(), getHeight());
- 	//run("Clear Outside");
+ 	run("Clear Outside");
 }
 
 function RemoveNoise() 
@@ -99,12 +123,11 @@ function EFA()
 function TA()
 {
 	PreProcess();
-
+	
 	run("8-bit");
+	
 	EnhanceContrast();
 	
-	run("Close-");
-	run("Fill Holes");
 	
 	if (colonyColor == "Light") 
 	{
@@ -132,6 +155,7 @@ while (readyToStart == false)
 	crop = 1;
 	contrastChoices = newArray("None", "1x", "2x", "3x");
 	contrast = 1;
+	colonyColorChoices = newArray("Light", "Dark");
 	denoiseChoices = newArray("None", "Low", "Medium", "High", "Ultra", "Nuclear");
 	fillHolesChoices = newArray ("Yes", "No");
 	minRadius = 150;
@@ -215,7 +239,7 @@ while (readyToStart == false)
 	
 	///// GENERATE PREVIEW /////
 	// Get the first image file in the input directory
-	open(inputDir + list[0]);
+	open(inputDir + imageList[0]);
 	
 	// Process preview image with EFA
 	if (processingChoice == "EFA") 
@@ -251,10 +275,10 @@ while (readyToStart == false)
 ///// RESULTS FOLDER /////
 
 // Initialize result arrays
-radii = newArray(list.length - 1);
-areas = newArray(list.length - 1);
-imageNames = newArray(list.length - 1);
-speed = newArray(list.length - 1);
+radii = newArray(imageList.length - 1);
+areas = newArray(imageList.length - 1);
+imageNames = newArray(imageList.length - 1);
+speed = newArray(imageList.length - 1);
 
 // Create Results folder inside of the input directory
 outputDir = inputDir + File.separator + "Results" + File.separator + date[2] + "-" + date[1] + "-" + date[0] + "_" + date[3] + "-" + date[4] + "-" + date[5];
@@ -264,7 +288,7 @@ File.makeDirectory(outputDir); // ... and then we create the output directory wi
 ///// END OF RESULTS FOLDER CREATION /////
 
 // Run this code for every file (image) in the input folder
-for (i = 0; i < list.length - 1; i++) 
+for (i = 0; i < imageList.length; i++) 
 {
 	// Close all images
 	close("*");
@@ -276,7 +300,7 @@ for (i = 0; i < list.length - 1; i++)
 	startSecond = second;
 	
 	// Open the image
-	open(inputDir + list[i]); 
+	open(inputDir + imageList[i]); 
 	
 	// Register its name
 	imageNames[i] = File.name; 
