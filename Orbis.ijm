@@ -1,5 +1,5 @@
-/// --- ORBIS v0.7.1 --- ///
-orbisVersion = 0.7.1;
+/// --- ORBIS v0.7.2 --- ///
+orbisVersion = "0.7.2";
 
 // Let the user decide the input directory
 inputDir = getDirectory("Choose source directory");
