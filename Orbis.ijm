@@ -1,5 +1,5 @@
-/// --- ORBIS v0.8.1 --- ///
-orbisVersion = "0.8.1";
+/// --- ORBIS v0.8.2 --- ///
+orbisVersion = "0.8.2";
 
 // Let the user decide the input directory
 inputDir = getDirectory("Choose source directory");
@@ -72,7 +72,9 @@ function RemoveNoise()
 	else if (denoise == "Ultra")
 		run("Remove Outliers...", "radius=10 threshold=10 which=Bright"); 
 	else if (denoise == "Nuclear")
-		run("Remove Outliers...", "radius=20 threshold=10 which=Bright"); 
+		run("Remove Outliers...", "radius=25 threshold=10 which=Bright"); 
+	else if (denoise == "Desperate")
+		run("Remove Outliers...", "radius=50 threshold=10 which=Bright"); 
 }
 
 function EnhanceContrast()
@@ -166,9 +168,12 @@ function TA()
 	run("Close-");
 	run("Fill Holes");
 	
+	// Invert colors to get a black background so the denoising works
+	run("Invert");
+	
 	// Remove noise (if user selected it). In this case it's done after the Auto Threshold, since that's the function that converts the image into binary
 	RemoveNoise();
-	
+
 	// Find the edges, i.e. highlight the circle
 	run("Find Edges");
 }
@@ -221,7 +226,7 @@ while (readyToStart == false)
 	var thresholdLeft = 0;
 	var thresholdRight = 255;
 	colonyColorChoices = newArray("Light", "Dark");
-	denoiseChoices = newArray("None", "Low", "Medium", "High", "Ultra", "Nuclear");
+	denoiseChoices = newArray("None", "Low", "Medium", "High", "Ultra", "Nuclear", "Desperate");
 	fillHolesChoices = newArray ("Yes", "No");
 	minRadius = 150;
 	maxRadius = 500;
