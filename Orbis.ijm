@@ -1,5 +1,5 @@
-/// --- ORBIS v0.7.2 --- ///
-orbisVersion = "0.7.2";
+/// --- ORBIS v0.8.1 --- ///
+orbisVersion = "0.8.1";
 
 // Let the user decide the input directory
 inputDir = getDirectory("Choose source directory");
@@ -56,8 +56,8 @@ function PreProcess()
 	
 	// Process image to highlight colony boundaries
 	// Clear everything outside of a central area which contains the circle to measure
-	makeOval(getWidth() / 2 - getHeight() / 2, 0, getHeight(), getHeight());
- 	run("Clear Outside");
+	//makeOval(getWidth() / 2 - getHeight() / 2, 0, getHeight(), getHeight());
+ 	//run("Clear Outside");
 }
 
 function RemoveNoise() 
@@ -120,7 +120,7 @@ function EFA()
 	run("Find Edges");
 }
 
-function TA()
+function ATA()
 {
 	PreProcess();
 	
@@ -128,14 +128,13 @@ function TA()
 	
 	EnhanceContrast();
 	
-	
 	if (colonyColor == "Light") 
 	{
-		run("Auto Threshold", "method=Huang white");
+		run("Auto Threshold", "method=Default white");
 	}
 	else 
 	{
-		run("Auto Threshold", "method=Huang");
+		run("Auto Threshold", "method=Default");
 	}
 		
 	// Remove noise (if user selected it). In this case it's done after the Auto Threshold, since that's the function that converts the image into binary
@@ -145,16 +144,82 @@ function TA()
 	run("Find Edges");
 }
 
+function TA()
+{
+	PreProcess();
+	EnhanceContrast();
+
+	run("HSB Stack");
+	run("Convert Stack to Images");
+	selectWindow("Hue");
+	close();
+	selectWindow("Saturation");
+	close();
+	selectWindow("Brightness");
+	
+	setThreshold(thresholdLeft, thresholdRight);
+	run("Convert to Mask");
+
+	if (brightnessFilterTA == "stop")
+		run("Invert");
+	
+	run("Close-");
+	run("Fill Holes");
+	
+	// Remove noise (if user selected it). In this case it's done after the Auto Threshold, since that's the function that converts the image into binary
+	RemoveNoise();
+	
+	// Find the edges, i.e. highlight the circle
+	run("Find Edges");
+}
+
+function PreviewTA()
+{
+	PreProcess();
+	EnhanceContrast();
+	
+	run("Color Threshold...");
+	waitForUser("Orbis TA Preview", "Using the Brightness parameter of the Color Threshold, highlight the colony halo, and note the minimum and maximum threshold values selected.\nWhen you are satisfied, click OK");
+	
+	Dialog.create("Orbis");
+	Dialog.addMessage("Threshold Algorithm (TA):");
+	Dialog.addHelp("https://github.com/afonsom20/orbis");
+	Dialog.addChoice("Pass filter ticked on?", brightnessFilterTAChoices)
+	Dialog.addSlider("Left (minimum) threshold", 0, 255, 0);
+	Dialog.addSlider("Right (maximum) threshold", 0, 255, 255);
+	Dialog.show();
+	
+	passFilterResponse = Dialog.getChoice();
+	
+	if (passFilterResponse == "No")
+	{
+		brightnessFilterTA = "stop";
+	}
+	else 
+	{
+		brightnessFilterTA = "pass";
+	}
+	
+	thresholdLeft = Dialog.getNumber();
+	thresholdRight = Dialog.getNumber();
+	selectWindow("Threshold Color");
+	run("Close");
+}
+
 ///// END OF PROCESSING FUNCTIONS /////
 
 readyToStart = false;
 while (readyToStart == false) 
 {
 	// Create parameters with default values
-	processingChoices = newArray("TA", "EFA");
+	processingChoices = newArray("TA", "ATA", "EFA");
 	crop = 1;
 	contrastChoices = newArray("None", "1x", "2x", "3x");
 	contrast = 1;
+	brightnessFilterTAChoices = newArray("No", "Yes");
+	brightnessFilterTA = "stop";
+	var thresholdLeft = 0;
+	var thresholdRight = 255;
 	colonyColorChoices = newArray("Light", "Dark");
 	denoiseChoices = newArray("None", "Low", "Medium", "High", "Ultra", "Nuclear");
 	fillHolesChoices = newArray ("Yes", "No");
@@ -207,11 +272,11 @@ while (readyToStart == false)
 		resolution = Dialog.getNumber();
 		scale = Dialog.getString();	
 	}
-	// TA - Threshold Algorithm
-	else
+	// ATA - Fast Threshold Algorithm
+	else if (processingChoice == "ATA")
 	{
 		Dialog.create("Orbis");
-		Dialog.addMessage("Threshold Algorithm (TA):");
+		Dialog.addMessage("Auto-Threshold Algorithm (ATA):");
 		Dialog.addHelp("https://github.com/afonsom20/orbis");
 		Dialog.addNumber("Crop/zoom factor (1 = no cropping)", crop);
 		Dialog.addChoice("Colony Color", colonyColorChoices);
@@ -236,10 +301,38 @@ while (readyToStart == false)
 		resolution = Dialog.getNumber();
 		scale = Dialog.getString();	
 	}
+	// TA - Manual Threshold Algorithm
+	else if (processingChoice == "TA")
+	{
+		Dialog.create("Orbis");
+		Dialog.addMessage("Threshold Algorithm (TA):");
+		Dialog.addHelp("https://github.com/afonsom20/orbis");
+		Dialog.addNumber("Crop/zoom factor (1 = no cropping)", crop);
+		Dialog.addChoice("Enhance contrast", contrastChoices);
+		Dialog.addChoice("Denoising", denoiseChoices);
+		Dialog.addNumber("Minimum circle radius", minRadius);
+		Dialog.addNumber("Maximum circle radius", maxRadius);
+		Dialog.addNumber("Search increment", increment);
+		Dialog.addNumber("Transform resolution", resolution);
+		Dialog.addNumber("Hough score threshold", threshold);
+		Dialog.addString("Scale units defined in 'Analyze -> 'Set Scale'", "cm");
+		Dialog.show();
+		
+		// Set parameter values
+		crop = Dialog.getNumber();
+		contrast = Dialog.getChoice();
+		denoise = Dialog.getChoice();
+		minRadius = Dialog.getNumber();
+		maxRadius = Dialog.getNumber();
+		increment = Dialog.getNumber();
+		resolution = Dialog.getNumber();
+		scale = Dialog.getString();	
+	}
 	
 	///// GENERATE PREVIEW /////
 	// Get the first image file in the input directory
 	open(inputDir + imageList[0]);
+	previewChoices = newArray ("Yes", "No");
 	
 	// Process preview image with EFA
 	if (processingChoice == "EFA") 
@@ -247,18 +340,23 @@ while (readyToStart == false)
 		EFA();
 	} 
 	// Process preview image with TA
-	else 
+	else if (processingChoice == "ATA") 
 	{
+		ATA();
+	}
+	// Process preview image with TA
+	else if (processingChoice == "TA")
+	{
+		PreviewTA();
+		close("*");
+		open(inputDir + imageList[0]);
 		TA();
 	}
-	
-	previewChoices = newArray ("Yes", "No");
 	
 	Dialog.create("Preview");
 	Dialog.addMessage("The preview image was processed with the chosen algorithm and parameters.");
 	Dialog.addChoice("Are you satisfied with the image treatment?", previewChoices);
 	Dialog.show();
-	
 	previewChoice = Dialog.getChoice();
 	
 	if (previewChoice == "Yes") 
@@ -310,8 +408,12 @@ for (i = 0; i < imageList.length; i++)
  	{
  	 	EFA();
 	}
-	// TA - Run Auto Threshold to highlight colony 
-	else if (processingChoice == "TA") 
+	// ATA - Run Auto Threshold to highlight colony 
+	else if (processingChoice == "ATA") 
+	{
+		ATA();
+	}
+	else if (processingChoice == "TA")
 	{
 		TA();
 	}
@@ -394,11 +496,15 @@ for (i = 0; i < speed.length; i++)
 
 if (processingChoice == "EFA")
 {
-	logString = "Date - " + date[2] + "-" + date[1] + "-" + date[0] + "_" + date[3] + ":" + date[4] + ":" + date[5] + "\nOrbis version = " + orbisVersion + "\nCrop/zoom = " + crop + "\nContrast = " + contrast + "\nDenoising = " + denoise + "\nFill holes = " + fillHoles +"\nMin. radius = " + minRadius + "\nMax. radius = " + maxRadius + "\nIncrement = " + increment + "\nResolution = " + resolution + "\nThreshold = " + threshold + "\nCircle number = " + circles + "\nScale unit = " + scale + "\nTotal analysis time = " + totalTime + " seconds" + "\nPerformance = " + averageSpeed + " seconds per image (average)";
+	logString = "Date - " + date[2] + "-" + date[1] + "-" + date[0] + "_" + date[3] + ":" + date[4] + ":" + date[5] + "\nOrbis version = " + orbisVersion + "\nProcessing algorithm = " + processingChoice + "\nCrop/zoom = " + crop + "\nContrast = " + contrast + "\nDenoising = " + denoise + "\nFill holes = " + fillHoles +"\nMin. radius = " + minRadius + "\nMax. radius = " + maxRadius + "\nIncrement = " + increment + "\nResolution = " + resolution + "\nThreshold = " + threshold + "\nCircle number = " + circles + "\nScale unit = " + scale + "\nTotal analysis time = " + totalTime + " seconds" + "\nPerformance = " + averageSpeed + " seconds per image (average)";
 }
-else
+else if (processingChoice == "ATA")
 {
-	logString = "Date - " + date[2] + "-" + date[1] + "-" + date[0] + "_" + date[3] + ":" + date[4] + ":" + date[5] + "\nOrbis version = " + orbisVersion + "\nCrop/zoom = " + crop + "\nColony color = " + colonyColor + "\nContrast = " + contrast + "\nDenoising = " + denoise + "\nMin. radius = " + minRadius + "\nMax. radius = " + maxRadius + "\nIncrement = " + increment + "\nResolution = " + resolution + "\nThreshold = " + threshold + "\nCircle number = " + circles + "\nScale unit = " + scale + "\nTotal analysis time = " + totalTime + " seconds" + "\nPerformance = " + averageSpeed + " seconds per image (average)";
+	logString = "Date - " + date[2] + "-" + date[1] + "-" + date[0] + "_" + date[3] + ":" + date[4] + ":" + date[5] + "\nOrbis version = " + orbisVersion + "\nProcessing algorithm = " + processingChoice + "\nCrop/zoom = " + crop + "\nColony color = " + colonyColor + "\nContrast = " + contrast + "\nDenoising = " + denoise + "\nMin. radius = " + minRadius + "\nMax. radius = " + maxRadius + "\nIncrement = " + increment + "\nResolution = " + resolution + "\nThreshold = " + threshold + "\nCircle number = " + circles + "\nScale unit = " + scale + "\nTotal analysis time = " + totalTime + " seconds" + "\nPerformance = " + averageSpeed + " seconds per image (average)";
+}
+else if (processingChoice == "TA")
+{
+	logString = "Date - " + date[2] + "-" + date[1] + "-" + date[0] + "_" + date[3] + ":" + date[4] + ":" + date[5] + "\nOrbis version = " + orbisVersion + "\nProcessing algorithm = " + processingChoice + "\nCrop/zoom = " + crop + "\nContrast = " + contrast + "\nDenoising = " + denoise + "\nMin. radius = " + minRadius + "\nMax. radius = " + maxRadius + "\nIncrement = " + increment + "\nResolution = " + resolution + "\nLeft (minimum) threshold = " + thresholdLeft + "\nRight (maximum) threshold = " + thresholdRight + "\nCircle number = " + circles + "\nScale unit = " + scale + "\nTotal analysis time = " + totalTime + " seconds" + "\nPerformance = " + averageSpeed + " seconds per image (average)";
 }
 
 File.saveString(logString, outputDir + File.separator + "log.txt");
