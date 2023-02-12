@@ -1,5 +1,5 @@
-/// --- ORBIS v0.8.2 --- ///
-orbisVersion = "0.8.2";
+/// --- ORBIS v0.8.3 --- ///
+orbisVersion = "0.8.3";
 
 // Let the user decide the input directory
 inputDir = getDirectory("Choose source directory");
@@ -54,10 +54,13 @@ function PreProcess()
 		run("Crop");
 	}
 	
-	// Process image to highlight colony boundaries
-	// Clear everything outside of a central area which contains the circle to measure
-	//makeOval(getWidth() / 2 - getHeight() / 2, 0, getHeight(), getHeight());
- 	//run("Clear Outside");
+	// Process image to highlight colony boundaries by removing the background (if user selected it)
+	// The rolling radius should be >= to the biggest non-background object, so we make it a bit larger than the selected maxRadius
+	if (subtractBackground == "Yes")
+	{
+		rollingRadius = 1.25 * maxRadius;
+		run("Subtract Background...", "rolling="+rollingRadius);
+	}
 }
 
 function RemoveNoise() 
@@ -217,7 +220,7 @@ readyToStart = false;
 while (readyToStart == false) 
 {
 	// Create parameters with default values
-	processingChoices = newArray("TA", "ATA", "EFA");
+	processingChoices = newArray("TA", "[Deprecated] - ATA", "[Deprecated] - EFA");
 	crop = 1;
 	contrastChoices = newArray("None", "1x", "2x", "3x");
 	contrast = 1;
@@ -225,6 +228,7 @@ while (readyToStart == false)
 	brightnessFilterTA = "stop";
 	var thresholdLeft = 0;
 	var thresholdRight = 255;
+	subtractBackgroundChoices = newArray("Yes", "No");
 	colonyColorChoices = newArray("Light", "Dark");
 	denoiseChoices = newArray("None", "Low", "Medium", "High", "Ultra", "Nuclear", "Desperate");
 	fillHolesChoices = newArray ("Yes", "No");
@@ -247,7 +251,7 @@ while (readyToStart == false)
 	processingChoice = Dialog.getChoice();
 	
 	// Create dialog box for chosen algorithm
-	// EFA - Edge Finding Algorithm
+	// DEPRECATED!!!!! EFA - Edge Finding Algorithm
 	if (processingChoice == "EFA")
 	{
 		Dialog.create("Orbis");
@@ -255,6 +259,7 @@ while (readyToStart == false)
 		Dialog.addHelp("https://github.com/afonsom20/orbis");
 		Dialog.addNumber("Crop/zoom factor (1 = no cropping)", crop);
 		Dialog.addChoice("Enhance contrast", contrastChoices);
+		Dialog.addChoice("Subtract background?", subtractBackgroundChoices);
 		Dialog.addChoice("Denoising", denoiseChoices);
 		Dialog.addChoice("Fill holes", fillHolesChoices);
 		Dialog.addNumber("Minimum circle radius", minRadius);
@@ -269,6 +274,7 @@ while (readyToStart == false)
 		
 		crop = Dialog.getNumber();
 		contrast = Dialog.getChoice();
+		subtractBackground = Dialog.getChoice();
 		denoise = Dialog.getChoice();
 		fillHoles = Dialog.getChoice();
 		minRadius = Dialog.getNumber();
@@ -277,7 +283,7 @@ while (readyToStart == false)
 		resolution = Dialog.getNumber();
 		scale = Dialog.getString();	
 	}
-	// ATA - Fast Threshold Algorithm
+	// DEPRECATED!!! ATA - Fast Threshold Algorithm
 	else if (processingChoice == "ATA")
 	{
 		Dialog.create("Orbis");
@@ -286,6 +292,7 @@ while (readyToStart == false)
 		Dialog.addNumber("Crop/zoom factor (1 = no cropping)", crop);
 		Dialog.addChoice("Colony Color", colonyColorChoices);
 		Dialog.addChoice("Enhance contrast", contrastChoices);
+		Dialog.addChoice("Subtract background?", subtractBackgroundChoices);
 		Dialog.addChoice("Denoising", denoiseChoices);
 		Dialog.addNumber("Minimum circle radius", minRadius);
 		Dialog.addNumber("Maximum circle radius", maxRadius);
@@ -299,6 +306,7 @@ while (readyToStart == false)
 		crop = Dialog.getNumber();
 		colonyColor = Dialog.getChoice();
 		contrast = Dialog.getChoice();
+		subtractBackground = Dialog.getChoice();
 		denoise = Dialog.getChoice();
 		minRadius = Dialog.getNumber();
 		maxRadius = Dialog.getNumber();
@@ -314,6 +322,7 @@ while (readyToStart == false)
 		Dialog.addHelp("https://github.com/afonsom20/orbis");
 		Dialog.addNumber("Crop/zoom factor (1 = no cropping)", crop);
 		Dialog.addChoice("Enhance contrast", contrastChoices);
+		Dialog.addChoice("Subtract background?", subtractBackgroundChoices);
 		Dialog.addChoice("Denoising", denoiseChoices);
 		Dialog.addNumber("Minimum circle radius", minRadius);
 		Dialog.addNumber("Maximum circle radius", maxRadius);
@@ -326,6 +335,7 @@ while (readyToStart == false)
 		// Set parameter values
 		crop = Dialog.getNumber();
 		contrast = Dialog.getChoice();
+		subtractBackground = Dialog.getChoice();
 		denoise = Dialog.getChoice();
 		minRadius = Dialog.getNumber();
 		maxRadius = Dialog.getNumber();
