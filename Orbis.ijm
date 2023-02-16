@@ -1,5 +1,5 @@
-/// --- ORBIS v0.8.3 --- ///
-orbisVersion = "0.8.3";
+/// --- ORBIS v0.8.4 --- ///
+orbisVersion = "0.8.4";
 
 // Let the user decide the input directory
 inputDir = getDirectory("Choose source directory");
@@ -163,17 +163,18 @@ function TA()
 	selectWindow("Brightness");
 	
 	setThreshold(thresholdLeft, thresholdRight);
+	
 	run("Convert to Mask");
 
 	if (brightnessFilterTA == "stop")
 		run("Invert");
-	
+
 	run("Close-");
 	run("Fill Holes");
-	
+
 	// Invert colors to get a black background so the denoising works
 	run("Invert");
-	
+
 	// Remove noise (if user selected it). In this case it's done after the Auto Threshold, since that's the function that converts the image into binary
 	RemoveNoise();
 
@@ -187,7 +188,7 @@ function PreviewTA()
 	EnhanceContrast();
 	
 	run("Color Threshold...");
-	waitForUser("Orbis TA Preview", "Using the Brightness parameter of the Color Threshold, highlight the colony halo, and note the minimum and maximum threshold values selected.\nWhen you are satisfied, click OK");
+	waitForUser("Orbis TA Preview", "Using the Brightness parameter of the Color Threshold, highlight the colony halo,\nand note the minimum and maximum threshold values selected.\n\nWhen you are satisfied, click OK.");
 	
 	Dialog.create("Orbis");
 	Dialog.addMessage("Threshold Algorithm (TA):");
@@ -210,6 +211,7 @@ function PreviewTA()
 	
 	thresholdLeft = Dialog.getNumber();
 	thresholdRight = Dialog.getNumber();
+
 	selectWindow("Threshold Color");
 	run("Close");
 }
@@ -242,7 +244,7 @@ while (readyToStart == false)
 	
 	// Create initial dialog box
 	Dialog.create("Orbis");
-	Dialog.addMessage("Welcome to Orbis (v" + orbisVersion + ")! For for more information, click on 'Help' to check the Github repository");
+	Dialog.addMessage("Welcome to Orbis (v" + orbisVersion + ")! For for more information, click on 'Help' to check the Github repository.");
 	Dialog.addHelp("https://github.com/afonsom20/orbis");
 	Dialog.addMessage("Please select your preferred image processing algorithm:");
 	Dialog.addChoice("Algorithm", processingChoices);
@@ -252,7 +254,7 @@ while (readyToStart == false)
 	
 	// Create dialog box for chosen algorithm
 	// DEPRECATED!!!!! EFA - Edge Finding Algorithm
-	if (processingChoice == "EFA")
+	if (processingChoice == "[Deprecated] - EFA")
 	{
 		Dialog.create("Orbis");
 		Dialog.addMessage("Edge Finding Algorithm (EFA):");
@@ -284,7 +286,7 @@ while (readyToStart == false)
 		scale = Dialog.getString();	
 	}
 	// DEPRECATED!!! ATA - Fast Threshold Algorithm
-	else if (processingChoice == "ATA")
+	else if (processingChoice == "[Deprecated] - ATA")
 	{
 		Dialog.create("Orbis");
 		Dialog.addMessage("Auto-Threshold Algorithm (ATA):");
@@ -350,12 +352,12 @@ while (readyToStart == false)
 	previewChoices = newArray ("Yes", "No");
 	
 	// Process preview image with EFA
-	if (processingChoice == "EFA") 
+	if (processingChoice == "[Deprecated] - EFA") 
 	{
 		EFA();
 	} 
 	// Process preview image with TA
-	else if (processingChoice == "ATA") 
+	else if (processingChoice == "[Deprecated] - ATA") 
 	{
 		ATA();
 	}
@@ -419,12 +421,12 @@ for (i = 0; i < imageList.length; i++)
 	imageNames[i] = File.name; 
  	
  	// EFA - Highlight edges of colony (initial pass)
- 	if (processingChoice == "EFA")
+ 	if (processingChoice == "[Deprecated] - EFA")
  	{
  	 	EFA();
 	}
 	// ATA - Run Auto Threshold to highlight colony 
-	else if (processingChoice == "ATA") 
+	else if (processingChoice == "[Deprecated] - ATA") 
 	{
 		ATA();
 	}
@@ -509,17 +511,17 @@ for (i = 0; i < speed.length; i++)
 }
 
 
-if (processingChoice == "EFA")
+if (processingChoice == "[Deprecated] - EFA")
 {
-	logString = "Date - " + date[2] + "-" + date[1] + "-" + date[0] + "_" + date[3] + ":" + date[4] + ":" + date[5] + "\nOrbis version = " + orbisVersion + "\nProcessing algorithm = " + processingChoice + "\nCrop/zoom = " + crop + "\nContrast = " + contrast + "\nDenoising = " + denoise + "\nFill holes = " + fillHoles +"\nMin. radius = " + minRadius + "\nMax. radius = " + maxRadius + "\nIncrement = " + increment + "\nResolution = " + resolution + "\nThreshold = " + threshold + "\nCircle number = " + circles + "\nScale unit = " + scale + "\nTotal analysis time = " + totalTime + " seconds" + "\nPerformance = " + averageSpeed + " seconds per image (average)";
+	logString = "Date - " + date[2] + "-" + date[1] + "-" + date[0] + "_" + date[3] + ":" + date[4] + ":" + date[5] + "\nOrbis version = " + orbisVersion + "\nProcessing algorithm = " + processingChoice + "\nCrop/zoom = " + crop + "\nContrast = " + contrast + "\nSubtract background? = " + subtractBackground + "\nDenoising = " + denoise + "\nFill holes = " + fillHoles +"\nMin. radius = " + minRadius + "\nMax. radius = " + maxRadius + "\nIncrement = " + increment + "\nResolution = " + resolution + "\nThreshold = " + threshold + "\nCircle number = " + circles + "\nScale unit = " + scale + "\nTotal analysis time = " + totalTime + " seconds" + "\nPerformance = " + averageSpeed + " seconds per image (average)";
 }
-else if (processingChoice == "ATA")
+else if (processingChoice == "[Deprecated] - ATA")
 {
-	logString = "Date - " + date[2] + "-" + date[1] + "-" + date[0] + "_" + date[3] + ":" + date[4] + ":" + date[5] + "\nOrbis version = " + orbisVersion + "\nProcessing algorithm = " + processingChoice + "\nCrop/zoom = " + crop + "\nColony color = " + colonyColor + "\nContrast = " + contrast + "\nDenoising = " + denoise + "\nMin. radius = " + minRadius + "\nMax. radius = " + maxRadius + "\nIncrement = " + increment + "\nResolution = " + resolution + "\nThreshold = " + threshold + "\nCircle number = " + circles + "\nScale unit = " + scale + "\nTotal analysis time = " + totalTime + " seconds" + "\nPerformance = " + averageSpeed + " seconds per image (average)";
+	logString = "Date - " + date[2] + "-" + date[1] + "-" + date[0] + "_" + date[3] + ":" + date[4] + ":" + date[5] + "\nOrbis version = " + orbisVersion + "\nProcessing algorithm = " + processingChoice + "\nCrop/zoom = " + crop + "\nColony color = " + colonyColor + "\nContrast = " + contrast + "\nSubtract background? = " + subtractBackground + "\nDenoising = " + denoise + "\nMin. radius = " + minRadius + "\nMax. radius = " + maxRadius + "\nIncrement = " + increment + "\nResolution = " + resolution + "\nThreshold = " + threshold + "\nCircle number = " + circles + "\nScale unit = " + scale + "\nTotal analysis time = " + totalTime + " seconds" + "\nPerformance = " + averageSpeed + " seconds per image (average)";
 }
 else if (processingChoice == "TA")
 {
-	logString = "Date - " + date[2] + "-" + date[1] + "-" + date[0] + "_" + date[3] + ":" + date[4] + ":" + date[5] + "\nOrbis version = " + orbisVersion + "\nProcessing algorithm = " + processingChoice + "\nCrop/zoom = " + crop + "\nContrast = " + contrast + "\nDenoising = " + denoise + "\nMin. radius = " + minRadius + "\nMax. radius = " + maxRadius + "\nIncrement = " + increment + "\nResolution = " + resolution + "\nLeft (minimum) threshold = " + thresholdLeft + "\nRight (maximum) threshold = " + thresholdRight + "\nCircle number = " + circles + "\nScale unit = " + scale + "\nTotal analysis time = " + totalTime + " seconds" + "\nPerformance = " + averageSpeed + " seconds per image (average)";
+	logString = "Date - " + date[2] + "-" + date[1] + "-" + date[0] + "_" + date[3] + ":" + date[4] + ":" + date[5] + "\nOrbis version = " + orbisVersion + "\nProcessing algorithm = " + processingChoice + "\nCrop/zoom = " + crop + "\nContrast = " + contrast + "\nSubtract background? = " + subtractBackground + "\nDenoising = " + denoise + "\nMin. radius = " + minRadius + "\nMax. radius = " + maxRadius + "\nIncrement = " + increment + "\nResolution = " + resolution + "\nLeft (minimum) threshold = " + thresholdLeft + "\nRight (maximum) threshold = " + thresholdRight + "\nCircle number = " + circles + "\nScale unit = " + scale + "\nTotal analysis time = " + totalTime + " seconds" + "\nPerformance = " + averageSpeed + " seconds per image (average)";
 }
 
 File.saveString(logString, outputDir + File.separator + "log.txt");
