@@ -1,10 +1,21 @@
+/*
+ * Orbis is an ImageJ macro to automatically calculate microbial colony areas.  
+ * 
+ * Copyright (C) 2023 Afonso Morgado Mota
+ * 
+ * This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
+ * This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
+ * You should have received a copy of the GNU General Public License along with this program. If not, see https://www.gnu.org/licenses/.
+*/
+
 var thresholdLeft = 0;
 var thresholdRight = 255;
+var firstImageBrightnessMean = 0;
 
 macro "Orbis" 
 {
-	/// --- ORBIS v0.9.0 --- ///
-	orbisVersion = "0.9.0";
+	/// --- ORBIS v1.0.0 --- ///
+	orbisVersion = "1.0.0";
 	
 	// Let the user decide the input directory
 	inputDir = getDirectory("Choose source directory");
@@ -63,7 +74,8 @@ macro "Orbis"
 	function PreProcess()
 	{
 		Crop();
-				
+		AdjustBrightness();
+		
 		// Process image to highlight colony boundaries by removing the background (if user selected it)
 		// The rolling radius should be >= to the biggest non-background object, so we make it a bit larger than the detected maxRadius
 		if (subtractBackground != "Off")
@@ -221,6 +233,30 @@ macro "Orbis"
 			AutoThreshold();
 	}
 	
+	function AdjustBrightness()
+	{
+		// Get histogram data, including the "mean" which contains the average pixel value, i.e. the mean brightness
+		getStatistics(area, initialMean, min, max, std, histogram);
+		
+		// If we are still in preview mode it means we are using the first image and should register it as the reference/blank for the brightness
+		if (readyToStart == false) 
+		{
+			// Register the brightness mean of this first image to automatically adjust the brightness on later images 
+			firstImageBrightnessMean = initialMean;
+		}
+		// If we are analysing the images for real, then we compare it to the first image. If it's the same image, not changes will be made to the brightness
+		else 
+		{	
+			if (brightnessNormalization == "No")
+				return;
+			else if (brightnessNormalization == "Yes")
+				brightnessAdjustValue = round(1.0 * (firstImageBrightnessMean - initialMean));
+					
+			setMinAndMax(-brightnessAdjustValue + 1, 255 - brightnessAdjustValue);
+			getStatistics(area, mean, min, max, std, histogram);
+		}	
+	}
+	
 	///// END OF PROCESSING FUNCTIONS /////
 	
 	readyToStart = false;
@@ -236,6 +272,7 @@ macro "Orbis"
 		brightnessFilter = "stop";
 		subtractBackgroundChoices = newArray("Fast", "High Quality", "Off");
 		denoiseChoices = newArray("None", "Low", "Medium", "High", "Ultra", "Nuclear", "Desperate");
+		brightnessNormalizationChoices = newArray("No", "Yes");
 		minRadius = 150;
 		maxRadius = 500;
 		increment = 5;
@@ -252,17 +289,18 @@ macro "Orbis"
 		Dialog.addChoice("Processing mode:", processingModeChoices);
 		Dialog.addChoice("Colony detection method:", colonyDetectionChoices);
 		Dialog.show();
-	
+		
 		processingMode = Dialog.getChoice();
 		colonyDetection = Dialog.getChoice();
 		
-		// Creeate dialogue
+		// Create dialogue
 		Dialog.create("Orbis");
 		Dialog.addHelp("https://github.com/afonsom20/orbis");
 		Dialog.addNumber("Crop/zoom factor (1 = no cropping)", crop);
 		Dialog.addChoice("Enhance contrast", contrastChoices);
 		Dialog.addChoice("Subtract background?", subtractBackgroundChoices);
 		Dialog.addChoice("Denoising", denoiseChoices);
+		Dialog.addChoice("Brightness normalization", brightnessNormalizationChoices);
 		Dialog.addString("Scale units defined in 'Analyze -> 'Set Scale'", "cm");
 		
 		if (colonyDetection == "Hough Circle Transform") 
@@ -281,6 +319,7 @@ macro "Orbis"
 		contrast = Dialog.getChoice();
 		subtractBackground = Dialog.getChoice();
 		denoise = Dialog.getChoice();
+		brightnessNormalization = Dialog.getChoice();
 		scale = Dialog.getString();	
 		
 		if (colonyDetection == "Hough Circle Transform") 
@@ -299,12 +338,17 @@ macro "Orbis"
 		if (processingMode == "Manual Threshold")
 		{	
 			open(inputDir + imageList[0]);
+			
 			ManualPreview();
 			close("*");
 		}
 		
 		// Get the first image file in the input directory to edit as a preview
 		open(inputDir + imageList[0]);
+		
+		// Register the brightness mean of this first image to automatically adjust the brightness on later images 
+		getStatistics(area, mean, min, max, std, histogram);
+		firstImageBrightnessMean = mean;
 	
 		ProcessImage();
 		
@@ -323,7 +367,6 @@ macro "Orbis"
 	
 		///// END PREVIEW /////
 	}
-	
 	
 	///// RESULTS FOLDER /////
 	
@@ -463,7 +506,6 @@ macro "Orbis"
 	// After processing all images in the input folder, create a table with the data
 	Table.create("Colony Areas");
 	Table.setColumn("Name", imageNames);
-	//Table.setColumn("Radius (" + scale + ")", radii);
 	Table.setColumn("Area (" + scale + ")", areas);
 	
 	selectWindow("Colony Areas");
@@ -473,7 +515,7 @@ macro "Orbis"
 	
 	// Saves log with input values and performance data
 	Array.getStatistics(speed, min, max, averageSpeed, stdDev);
-	
+
 	// Also get the total 
 	totalTime = 0;
 	for (i = 0; i < speed.length; i++) 
@@ -484,11 +526,11 @@ macro "Orbis"
 	// Write all output variables and parameters into a string
 	if (colonyDetection == "Hough Circle Transform")
 	{
-		logString = "Date - " + date[2] + "-" + date[1] + "-" + date[0] + "_" + date[3] + ":" + date[4] + ":" + date[5] + "\nOrbis version = " + orbisVersion + "\nColony detection method = " + colonyDetection + "\nCrop/zoom = " + crop + "\nContrast = " + contrast + "\nSubtract background = " + subtractBackground + "\nDenoising = " + denoise + "\nMin. radius = " + minRadius + "\nMax. radius = " + maxRadius + "\nIncrement = " + increment + "\nResolution = " + resolution + "\nLeft (minimum) threshold = " + thresholdLeft + "\nRight (maximum) threshold = " + thresholdRight + "\nCircle number = " + circles + "\nScale unit = " + scale + "\nTotal analysis time = " + totalTime + " seconds" + "\nPerformance = " + averageSpeed + " seconds per image (average)";
+		logString = "Date - " + date[2] + "-" + date[1] + "-" + date[0] + "_" + date[3] + ":" + date[4] + ":" + date[5] + "\nOrbis version = " + orbisVersion + "\nColony detection method = " + colonyDetection + "\nCrop/zoom = " + crop + "\nContrast = " + contrast + "\nSubtract background = " + subtractBackground + "\nDenoising = " + denoise + "\nMin. radius = " + minRadius + "\nMax. radius = " + maxRadius + "\nIncrement = " + increment + "\nResolution = " + resolution + "\nLeft (minimum) threshold = " + thresholdLeft + "\nRight (maximum) threshold = " + thresholdRight + "\nCircle number = " + circles + "\nBrightness normalization? = " + brightnessNormalization + "\nScale unit = " + scale + "\nTotal analysis time = " + totalTime + " seconds" + "\nPerformance = " + averageSpeed + " seconds per image (average)";
 	}
 	else if (colonyDetection == "Magic Wand")
 	{
-		logString = "Date - " + date[2] + "-" + date[1] + "-" + date[0] + "_" + date[3] + ":" + date[4] + ":" + date[5] + "\nOrbis version = " + orbisVersion + "\nColony detection method = " + colonyDetection + "\nCrop/zoom = " + crop + "\nContrast = " + contrast + "\nSubtract background = " + subtractBackground + "\nDenoising = " + denoise + "\nLeft (minimum) threshold = " + thresholdLeft + "\nRight (maximum) threshold = " + thresholdRight + "\nScale unit = " + scale + "\nTotal analysis time = " + totalTime + " seconds" + "\nPerformance = " + averageSpeed + " seconds per image (average)";
+		logString = "Date - " + date[2] + "-" + date[1] + "-" + date[0] + "_" + date[3] + ":" + date[4] + ":" + date[5] + "\nOrbis version = " + orbisVersion + "\nColony detection method = " + colonyDetection + "\nCrop/zoom = " + crop + "\nContrast = " + contrast + "\nSubtract background = " + subtractBackground + "\nDenoising = " + denoise + "\nLeft (minimum) threshold = " + thresholdLeft + "\nRight (maximum) threshold = " + thresholdRight + "\nBrightness normalization? = " + brightnessNormalization + "\nScale unit = " + scale + "\nTotal analysis time = " + totalTime + " seconds" + "\nPerformance = " + averageSpeed + " seconds per image (average)";
 	}
 	
 	// Create the log.txt file with the output logString

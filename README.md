@@ -2,7 +2,7 @@
   <img src="https://user-images.githubusercontent.com/62797431/229082913-834277f7-fd01-448f-b3e2-8d1d750e48d6.png" width="544" height="184">
 </p>
 
-# Orbis v0.9.0
+# Orbis v1.0.0
 Orbis is a Fiji/ImageJ macro designed to process batches of images containing microbial colonies, automatically detecting their boundaries and calculating their areas. 
 Not only does Orbis provide more objective and precise values when compared to manual measurements, but it also considerably reduces the time needed for the analysis, due to its fast processing time.
 Although it was initially designed to measure the areas of fungal colonies, Orbis also works on bacterial colonies.
@@ -10,6 +10,7 @@ Although it was initially designed to measure the areas of fungal colonies, Orbi
 
 ## Features
 - User-friendly interface with multiple customizable parameters and several steps with visual feedback
+- Designed to process multiple images with increased speed and precision due to optimization methods like brightness normalization
 - Supports multiple image formats (.tif, .jpg, .jpeg, .png, .fits, .bmp)
 - Provides preview functionality to test chosen parameters
 - Works on circular and irregularly shaped colonies
@@ -47,3 +48,6 @@ a .csv file with the calculated colony areas for each image, and a log file with
 
 ### Contact
 I am welcome to contributions to improve Orbis. Please feel free to submit a pull request or report any issues you encounter. For any questions/comments you can also contact me at afonsomm@gmail.com
+
+### Licence
+This project is licensed under the GNU General Public License v3 (GPLv3), available here: https://www.gnu.org/licenses/gpl-3.0.html
